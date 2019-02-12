@@ -246,14 +246,13 @@ return {
       EXECUTE PROCEDURE sync_tags();
 
 
-=======
->>>>>>> origin/next
     ]],
   },
 
   cassandra = {
     up = [[
-<<<<<<< HEAD
+      ALTER TABLE plugins ADD protocols set<text>;
+
       ALTER TABLE services ADD tags set<text>;
       ALTER TABLE routes ADD tags set<text>;
       ALTER TABLE certificates ADD tags set<text>;
@@ -270,11 +269,7 @@ return {
         other_tags        set<text>,
         PRIMARY KEY       ((tag), entity_name, entity_id)
       );
-=======
 
-      ALTER TABLE plugins ADD protocols set<text>;
-
->>>>>>> origin/next
     ]],
   },
 }
