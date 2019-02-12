@@ -3,10 +3,11 @@ local helpers = require "spec.helpers"
 local fmod    = math.fmod
 
 
-local function is_valid_page(assert, rows, err, err_t)
-  assert.is_nil(err_t)
-  assert.is_nil(err)
-  assert.is_table(rows)
+local function is_valid_page(rows, err, err_t)
+  if type(rows) == "table" and err == nil and err_t == nil then
+    return true
+  end
+  return nil, "not a valid page: " .. tostring(err)
 end
 
 for _, strategy in helpers.each_strategy() do
@@ -15,7 +16,7 @@ for _, strategy in helpers.each_strategy() do
 
     lazy_setup(function()
       bp, db = helpers.get_db_utils(strategy, {
-        "services",
+        "services", "tags",
       })
     end)
 
@@ -39,9 +40,9 @@ for _, strategy in helpers.each_strategy() do
       end
     end)
 
-    it("list all entities attached with tag", function()
+    it("list all entities that have tag", function()
       local rows, err, err_t, offset = db.tags:page()
-      is_valid_page(assert, rows, err, err_t)
+      assert(is_valid_page(rows, err, err_t))
       assert.is_nil(offset)
       assert.equal(test_entity_count*3, #rows)
       for _, row in ipairs(rows) do
@@ -51,7 +52,7 @@ for _, strategy in helpers.each_strategy() do
 
     it("list entity IDs by tag", function()
       local rows, err, err_t, offset = db.tags:page_by_tag("team_a")
-      is_valid_page(assert, rows, err, err_t)
+      assert(is_valid_page(rows, err, err_t))
       assert.is_nil(offset)
       assert.equal(test_entity_count, #rows)
       for _, row in ipairs(rows) do
@@ -59,18 +60,18 @@ for _, strategy in helpers.each_strategy() do
       end
 
       rows, err, err_t, offset = db.tags:page_by_tag("team_alien")
-      is_valid_page(assert, rows, err, err_t)
+      assert(is_valid_page(rows, err, err_t))
       assert.is_nil(offset)
       assert.equal(0, #rows)
 
       rows, err, err_t, offset = db.tags:page_by_tag("service1")
-      is_valid_page(assert, rows, err, err_t)
+      assert(is_valid_page(rows, err, err_t))
       assert.is_nil(offset)
       assert.equal(1, #rows)
       for _, row in ipairs(rows) do
         assert.equal("service1", row.tag)
       end
-      
+
     end)
 
 
@@ -108,22 +109,22 @@ for _, strategy in helpers.each_strategy() do
           removed_tags_count = removed_tags_count + 1
 
           local rows, err, err_t, offset = db.tags:page()
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(test_entity_count*3 - removed_tags_count, #rows)
 
           rows, err, err_t, offset = db.tags:page_by_tag("team_a")
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(test_entity_count, #rows)
 
           rows, err, err_t, offset = db.tags:page_by_tag("team_b_" .. func)
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(1, #rows)
 
           rows, err, err_t, offset = db.tags:page_by_tag(removed_tag)
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(0, #rows)
         end)
@@ -144,7 +145,7 @@ for _, strategy in helpers.each_strategy() do
       }
       for i, scenario in pairs(scenarios) do
         local delete_func, delete_key, removed_tag = unpack(scenario)
-    
+
         it(delete_func, function()
           local ok, err, err_t = db.services[delete_func](db.services, delete_key)
           assert.is_true(ok)
@@ -154,17 +155,17 @@ for _, strategy in helpers.each_strategy() do
           removed_tags_count = removed_tags_count + 3
 
           local rows, err, err_t, offset = db.tags:page()
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(test_entity_count*3 - removed_tags_count, #rows)
 
           rows, err, err_t, offset = db.tags:page_by_tag("team_a")
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(test_entity_count - i, #rows)
 
           rows, err, err_t, offset = db.tags:page_by_tag(removed_tag)
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(0, #rows)
         end)
@@ -172,9 +173,11 @@ for _, strategy in helpers.each_strategy() do
       end
     end)
 
-    describe("insert row in tags table with", function()
+    describe("upsert row in tags table with", function()
       -- due to the different sql in postgres stragey
       -- we need to test these two methods seperately
+      -- note this is different from test "update row in tags table with"
+      -- as this test actually creats new records
       local scenarios = {
         { "upsert", { id = require("kong.tools.utils").uuid() }, { "service-upsert-1" } }, 
         { "upsert_by_name", "service-upsert-2", { "service-upsert-2" } },
@@ -193,7 +196,7 @@ for _, strategy in helpers.each_strategy() do
           end
 
           local rows, err, err_t, offset = db.tags:page_by_tag(tags[1])
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_nil(offset)
           assert.equal(1, #rows)
         end)
@@ -207,7 +210,7 @@ for _, strategy in helpers.each_strategy() do
       local total_entities_count = 100
       for i = 1, total_entities_count do
         local service = {
-          host = "anotherexmaple-" .. i .. ".org",
+          host = "anotherexample-" .. i .. ".org",
           name = "service-paging" .. i,
           tags = { "paging", "team_paging_" .. fmod(i, 5), "irrelevant_tag" }
         }
@@ -249,7 +252,7 @@ for _, strategy in helpers.each_strategy() do
 
           local scenario_name = string.format("#%d %s %s", s_idx, opts[2] and opts[2]:upper() or "",
                                               size and "with pagination" or "")
-          
+
           --  page() #1 condition pagination  results count is expected
 
           describe(scenario_name, function()
@@ -262,7 +265,7 @@ for _, strategy in helpers.each_strategy() do
                 rows, err, err_t, offset = db.services:page(size, offset,
                   { tags = opts[1], tags_cond = opts[2] }
                 )
-                is_valid_page(assert, rows, err, err_t)
+                assert(is_valid_page(rows, err, err_t))
                 for _, row in ipairs(rows) do
                   assert.is_nil(seen_entities[row.id])
                   seen_entities[row.id] = true
@@ -287,60 +290,128 @@ for _, strategy in helpers.each_strategy() do
       if strategy == "cassandra" then
         func = describe
       end
-  
+
       func("limits maximum queries in single request", function()
         local match = require("luassert.match")
         -- Might be flaky because it depends on how cassandra partition/order row
         it("and exits early if PAGING_MAX_QUERY_ROUNDS exceeded", function()
           stub(ngx, "log")
-          
+
           local rows, err, err_t, offset = db.services:page(2, nil, 
             { tags = { "paging", "tag_notexist" }, tags_cond = 'and' })
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.is_not_nil(offset)
           -- actually #rows will be 0 in this certain test case,
           -- but put as < 2(size) as it's what logically expected
           assert.is_true(#rows < 2)
-  
+
           assert.stub(ngx.log).was_called()
           assert.stub(ngx.log).was_called_with(ngx.WARN, match.is_same("maximum "),  match.is_same(20),
                                         match.is_same(" rounds exceeded "),
                                         match.is_same("without retrieving required size of rows, "),
                                         match.is_same("consider lower the sparsity of tags, or increase the paging size per request"))
         end)
-  
+
         local enough_page_size = total_entities_count/single_tag_count
-        it("and doens't throw warning if page size is large enough", function()
+        it("and doesn't throw warning if page size is large enough", function()
           stub(ngx, "log")
-          
+
           local rows, err, err_t, offset = db.services:page(enough_page_size, nil,
             { tags = { "paging", "tag_notexist" }, tags_cond = 'and' })
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.equal(0, #rows)
           assert.is_nil(offset)
-  
+
           assert.stub(ngx.log).was_not_called()
         end)
-      
+
         it("and returns as normal if page size is large enough", function()
           stub(ngx, "log")
-          
+
           local rows, err, err_t, offset = db.services:page(enough_page_size, nil,
           { tags = { "paging", "team_paging_1" }, tags_cond = 'and' })
-          is_valid_page(assert, rows, err, err_t)
+          assert(is_valid_page(rows, err, err_t))
           assert.equal(enough_page_size, #rows)
           if offset then
             rows, err, err_t, offset = db.services:page(enough_page_size, offset,
             { tags = { "paging", "team_paging_1" }, tags_cond = 'and' })
-            is_valid_page(assert, rows, err, err_t)
+            assert(is_valid_page(rows, err, err_t))
             assert.equal(0, #rows)
             assert.is_nil(offset)
           end
-  
+
           assert.stub(ngx.log).was_not_called()
         end)
       end)
 
+      it("allow tags_cond omitted if there's only one tag", function()
+        local rows, err, err_t, _ = db.services:page(nil, nil, { tags = { "foo" } })
+        assert(is_valid_page(rows, err, err_t))
+        assert.equal(0, #rows)
+      end)
+
+      it("errors on invalid options", function()
+        local rows, err
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = "oops", tags_cond = 'and' })
+        assert.is_nil(rows)
+        assert.match([[tags: must be a table]], err)
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = true, tags_cond = 'and' })
+        assert.is_nil(rows)
+        assert.match([[tags: must be a table]], err)
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = false, tags_cond = 'and' })
+        assert.is_nil(rows)
+        assert.match([[tags: must be a table]], err)
+
+        -- tags = nil is ok, in cases like /services without ?tags= query
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = ngx.null, tags_cond = 'and' })
+        assert.is_nil(rows)
+        assert.match([[tags: must be a table]], err)
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = -1, tags_cond = 'and' })
+        assert.is_nil(rows)
+        assert.match([[tags: must be a table]], err)
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = { "oops", "@_@" }, tags_cond = 'and' })
+        assert.is_nil(rows)
+        assert.match([[tags: must only contain alphanumeric and]], err)
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = { "1", "2", "3", "4", "5", "6" } })
+        assert.is_nil(rows)
+        assert.match([[tags: cannot query more than 5 tags]], err)
+
+        rows, err, _, _ = db.services:page(nil, nil, { tags = { "foo", "bar" } })
+        assert.is_nil(rows)
+        assert.match([[tags_cond: must be a either 'and' or 'or' when more than one tag is specified]], err)
+      end)
+
+      it("errors on entity that doesn't support tagging", function()
+        local rows, err, _, _ = db.cluster_ca:page(nil, nil, { tags = { "foo" } })
+        assert.is_nil(rows)
+        assert.match([[tags: cannot be used with 'cluster_ca']], err)
+      end)
+
+    end)
+
+    describe("errors if tag value is invalid", function()
+      assert.has_error(function()
+        bp.services:insert({
+          host = "invalid-tag.com",
+          name = "service-invalid-tag",
+          tags = { "invalid tag" }
+        })
+      end, string.format('[%s] schema violation (tags: invalid value: invalid tag)', strategy))
+
+      assert.has_error(function()
+        bp.services:insert({
+          host = "invalid-tag.com",
+          name = "service-invalid-tag",
+          tags = { "foo,bar" }
+        })
+      end, string.format('[%s] schema violation (tags: invalid value: foo,bar)', strategy))
     end)
 
 
@@ -348,9 +419,46 @@ for _, strategy in helpers.each_strategy() do
     if strategy == "postgres" then
       func = describe
     end
-    func("trigger defined for all core entities", function()
-      -- TODO: test basic insert on other entities on tags table
-      -- to avoid typo
+    func("trigger defined for table", function()
+      for entity_name, dao in pairs(db.daos) do
+        if dao.schema.fields.tags then
+          it(entity_name, function()
+            local res, err = db.connector:query(string.format([[
+              SELECT event_manipulation
+                FROM information_schema.triggers
+              WHERE event_object_table='%s'
+                AND action_statement='EXECUTE PROCEDURE sync_tags()'
+                AND action_timing='AFTER'
+                AND action_orientation='ROW';
+            ]], entity_name))
+            assert.is_nil(err)
+            assert.is_table(res)
+            assert.equal(3, #res)
+
+            local evts = {}
+            for i, row in ipairs(res) do
+              evts[i] = row.event_manipulation
+            end
+
+            assert.contains("INSERT", evts)
+            assert.contains("UPDATE", evts)
+            assert.contains("DELETE", evts)
+
+            local res, err = db.connector:query(string.format([[
+              SELECT COUNT(trigger_name)
+                FROM information_schema.triggered_update_columns
+              WHERE event_object_table='%s'
+                AND event_object_column='tags';
+            ]], entity_name))
+            assert.is_nil(err)
+            assert.is_table(res)
+            assert.is_table(res[1])
+            assert.equal(1, res[1].count)
+
+            -- TODO: ensure system-level trigger TRUNCATE exists
+          end)
+        end
+      end
     end)
   end)
 end

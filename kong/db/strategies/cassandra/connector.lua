@@ -454,6 +454,7 @@ end
 
 
 function CassandraConnector:truncate()
+  -- TODO: delete rows in tags table when truncating an entity table
   local ok, err = self:connect()
   if not ok then
     return nil, err

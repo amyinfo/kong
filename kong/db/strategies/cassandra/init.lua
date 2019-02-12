@@ -751,7 +751,7 @@ function _mt:insert(entity, options)
 
   local mode = 'insert'
 
-  if schema.tags then
+  if schema.fields.tags then
     primary_key = schema:extract_pk_values(entity)
     local err_t
     cql_batch, err_t = build_tags_cql(self, primary_key, schema, entity["tags"], ttl, false)
@@ -1206,7 +1206,7 @@ do
     local cql_batch
     local batch_mode
 
-    if schema.tags then
+    if schema.fields.tags then
       local err_t
       cql_batch, err_t = build_tags_cql(self, primary_key, schema, entity["tags"], ttl, true)
       if err_t then

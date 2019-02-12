@@ -6,13 +6,13 @@ return {
   name        = "certificates",
   primary_key = { "id" },
   dao         = "kong.db.dao.certificates",
-  tags        = true,
 
   fields = {
     { id = typedefs.uuid, },
     { created_at     = typedefs.auto_timestamp_s },
     { cert           = typedefs.certificate { required = true }, },
     { key            = typedefs.key         { required = true }, },
+    { tags           = typedefs.tags },
   },
 
   entity_checks = {

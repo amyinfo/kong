@@ -7,7 +7,7 @@ return {
   dao          = "kong.db.dao.tags",
 
   fields = {
-    { tag          = { type = "string", required = true, unique = false }, },
+    { tag          = { type = "string", required = true, unique = false, match = "^[%w%.%-%_~]+$" }, },
     { entity_name  = { type = "string", required = true, unique = false }, },
     { entity_id    = { type = "string",
                         elements = typedefs.uuid,

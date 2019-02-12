@@ -177,7 +177,7 @@ return {
       DROP TRIGGER IF EXISTS plugins_sync_tags_trigger ON plugins;
 
       CREATE TRIGGER plugins_sync_tags_trigger
-      AFTER INSERT OR UPDATE OR DELETE ON plugins
+      AFTER INSERT OR UPDATE OF tags OR DELETE ON plugins
       FOR EACH ROW
       EXECUTE PROCEDURE sync_tags();
 

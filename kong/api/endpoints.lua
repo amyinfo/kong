@@ -131,24 +131,22 @@ local function extract_options(args, schema, context)
       args.ttl = nil
     end
 
-    if schema.tags == true and args.tags ~= nil and context == "page" then
+    if schema.fields.tags and args.tags ~= nil and context == "page" then
       local tags = args.tags
       if type(tags) == "table" then
-        -- TODO: raise exception if user send /services?tags=a,b&tags=c,d
-        -- where we should only tags be specified once
-        tags = tags[#tags]
+        tags = tags[1]
       end
 
-      if re_match(tags, [=[^([\w\.\-\_~]+(?:,|$))+$]=], 'jo') then
+      if re_match(tags, [=[^([a-zA-Z0-9\.\-\_~]+(?:,|$))+$]=], 'jo') then
         -- 'a,b,c' or 'a'
         options.tags_cond = 'and'
         options.tags = split(tags, ',')
-      elseif re_match(tags, [=[^([\w\.\-\_~]+(?:/|$))+$]=], 'jo') then
+      elseif re_match(tags, [=[^([a-zA-Z0-9\.\-\_~]+(?:/|$))+$]=], 'jo') then
         -- 'a/b/c'
         options.tags_cond = 'or'
         options.tags = split(tags, '/')
       else
-        options.tags = {}
+        options.tags = tags
         -- not setting tags_cond since we can't determine the cond
         -- will raise an error in db/dao/init.lua:validate_options_value
       end
@@ -282,10 +280,9 @@ local function get_collection_endpoint(schema, foreign_schema, foreign_field_nam
   return not foreign_schema and function(self, db, helpers)
     local next_page_tags = ""
 
-    -- FIXME: saner api to avoid getting args here
     local args = self.args.uri
     if args.tags then
-      next_page_tags = "&tags=" .. concat(args.tags, args.tags.cond == "and" and "," or "/")
+      next_page_tags = "&tags=" .. (type(args.tags) == "table" and args.tags[1] or args.tags)
     end
 
     local data, _, err_t, offset = page_collection(self, db, schema, method)

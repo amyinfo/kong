@@ -150,7 +150,6 @@ local r =  {
   name = "upstreams",
   primary_key = { "id" },
   endpoint_key = "name",
-  tags = true,
   fields = {
     { id = typedefs.uuid, },
     { created_at = typedefs.auto_timestamp_s },
@@ -166,6 +165,7 @@ local r =  {
         default = healthchecks_defaults,
         fields = healthchecks_fields,
     }, },
+    { tags = typedefs.tags },
   },
   entity_checks = {
     -- hash_on_header must be present when hashing on header

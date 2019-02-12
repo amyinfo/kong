@@ -306,6 +306,14 @@ typedefs.run_on_first = Schema.define {
   one_of = { "first" },
 }
 
+typedefs.tags = Schema.define {
+  type = "set",
+  elements = {
+    type = "string",
+    match = "^[%w%.%-%_~]+$"
+  },
+}
+
 
 setmetatable(typedefs, {
   __index = function(_, k)

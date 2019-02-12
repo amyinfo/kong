@@ -901,7 +901,7 @@ function _M.new(connector, schema, errors)
   end
 
   local ttl                           = schema.ttl == true
-  local tags                          = schema.tags == true
+  local tags                          = schema.fields.tags ~= nil
   local composite_cache_key           = schema.cache_key and #schema.cache_key > 1
   local max_name_length               = ttl and 3  or 1
   local max_type_length               = ttl and 24 or 1

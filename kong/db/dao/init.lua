@@ -132,7 +132,7 @@ local function validate_options_value(options, schema, context)
        context ~= "update" and
        context ~= "upsert" then
       errors.ttl = fmt("option can only be used with inserts, updates and upserts, not with '%ss'",
-                       tostring(context))
+                       context)
 
     elseif floor(options.ttl) ~= options.ttl or
                  options.ttl < 0 or
@@ -146,21 +146,27 @@ local function validate_options_value(options, schema, context)
     errors.ttl = fmt("cannot be used with '%s'", schema.name)
   end
 
-  if schema.tags == true and options.tags ~= nil then
+  if schema.fields.tags and options.tags ~= nil then
     if context ~= "select" then
       errors.tags = fmt("option can only be used with selects and pages, not with '%ss'",
                        tostring(context))
     elseif type(options.tags) ~= "table" then
-      errors.tags = "must be a table"
+      if not options.tags_cond then
+        -- If options.tags is not a table and options.tags_cond is nil at the same time
+        -- it means arguments.lua gets an invalid tags arg from the Admin API
+        errors.tags = "invalid filter syntax"
+      else
+        errors.tags = "must be a table"
+      end
     elseif #options.tags > 5 then
-      errors.tags = "cannot be query more than 5 tags"
+      errors.tags = "cannot query more than 5 tags"
     elseif not match(concat(options.tags), "^[%w%.%-%_~]+$") then
       errors.tags = "must only contain alphanumeric and '., -, _, ~' characters"
     elseif #options.tags > 1 and options.tags_cond ~= "and" and options.tags_cond ~= "or" then
-      errors.tags_cond = "must be a either 'and' or 'or' when more than one tags are specified"
+      errors.tags_cond = "must be a either 'and' or 'or' when more than one tag is specified"
     end
 
-  elseif schema.tags ~= true and options.tags ~= nil then
+  elseif schema.fields.tags == nil and options.tags ~= nil then
     errors.tags = fmt("cannot be used with '%s'", schema.name)
   end
 

@@ -9,16 +9,16 @@ local Tags = {}
 
 local sql_templates = {
   page_first = [[
-  SELECT entity_id, entity_name, tag, ordinarity 
+  SELECT entity_id, entity_name, tag, ordinality
     FROM tags,
-    UNNEST(tags) WITH ORDINALITY as t_tag (tag, ordinarity)
+    UNNEST(tags) WITH ORDINALITY as t_tag (tag, ordinality)
     ORDER BY entity_id
     LIMIT %s;]],
   page_next  = [[
-  SELECT entity_id, entity_name, tag, ordinarity 
+  SELECT entity_id, entity_name, tag, ordinality
     FROM tags,
-    UNNEST(tags) WITH ORDINALITY as t_tag (tag, ordinarity)
-    WHERE entity_id > %s OR (entity_id = %s AND ordinarity > %s)
+    UNNEST(tags) WITH ORDINALITY as t_tag (tag, ordinality)
+    WHERE entity_id > %s OR (entity_id = %s AND ordinality > %s)
     ORDER BY entity_id
     LIMIT %s;]],
   page_for_tag_first = [[
@@ -93,7 +93,7 @@ local function page(self, size, token, options, tag)
 
   local rows = kong.table.new(size, 0)
 
-  local last_ordinarity
+  local last_ordinality
 
   for i = 1, limit do
     local row = res[i]
@@ -105,7 +105,7 @@ local function page(self, size, token, options, tag)
       row = res[size]
       local offset = {
         row.entity_id,
-        last_ordinarity
+        last_ordinality
       }
 
       offset = cjson.encode(offset)
@@ -114,8 +114,8 @@ local function page(self, size, token, options, tag)
       return rows, nil, offset
     end
 
-    last_ordinarity = row.ordinarity
-    row.ordinarity = nil
+    last_ordinality = row.ordinality
+    row.ordinality = nil
 
     if tag then
       row.tag = tag
