@@ -118,6 +118,18 @@ local configured_plugins
 local loaded_plugins
 local schema_state
 
+
+local function plugin_protocols_match_current_subsystem(plugin)
+  local current_subsystem = ngx.config.subsystem
+  local c = constants.PROTOCOLS_WITH_SUBSYSTEM
+  for _, protocol in ipairs(plugin.protocols) do
+    if c[protocol] == current_subsystem then
+      return true
+    end
+  end
+end
+
+
 local function build_plugins_map(db, version)
   local map = {}
 
@@ -126,7 +138,9 @@ local function build_plugins_map(db, version)
       return nil, err
     end
 
-    map[plugin.name] = true
+    if plugin_protocols_match_current_subsystem(plugin) then
+      map[plugin.name] = true
+    end
   end
 
   if version then

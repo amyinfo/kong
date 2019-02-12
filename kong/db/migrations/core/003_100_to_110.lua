@@ -7,8 +7,15 @@ return {
       UPDATE upstreams SET created_at = DATE_TRUNC('seconds', created_at);
       UPDATE targets   SET created_at = DATE_TRUNC('milliseconds', created_at);
 
-
       DROP FUNCTION IF EXISTS "upsert_ttl" (TEXT, UUID, TEXT, TEXT, TIMESTAMP WITHOUT TIME ZONE);
+
+      DO $$
+      BEGIN
+        ALTER TABLE IF EXISTS ONLY "plugins" ADD "protocols" TEXT[];
+      EXCEPTION WHEN DUPLICATE_COLUMN THEN
+        -- Do nothing, accept existing state
+      END;
+      $$;
 
       CREATE TABLE IF NOT EXISTS "tags" (
         entity_id         UUID    PRIMARY KEY,
@@ -239,11 +246,14 @@ return {
       EXECUTE PROCEDURE sync_tags();
 
 
+=======
+>>>>>>> origin/next
     ]],
   },
 
   cassandra = {
     up = [[
+<<<<<<< HEAD
       ALTER TABLE services ADD tags set<text>;
       ALTER TABLE routes ADD tags set<text>;
       ALTER TABLE certificates ADD tags set<text>;
@@ -260,6 +270,11 @@ return {
         other_tags        set<text>,
         PRIMARY KEY       ((tag), entity_name, entity_id)
       );
+=======
+
+      ALTER TABLE plugins ADD protocols set<text>;
+
+>>>>>>> origin/next
     ]],
   },
 }
